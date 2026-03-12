@@ -1,0 +1,6 @@
+node_modules/
+newsmap.db
+news_data/
+logs/
+.env
+*.log

@@ -1,0 +1,21 @@
+{
+  "name": "bd-newsmap-v6",
+  "version": "2.0.0",
+  "description": "Hyperlocal news mapping for Bangladesh \u2014 Termux Edition (zero native deps)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "storage": "node storage-server.js",
+    "setup-tor": "bash setup-tor.sh"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.18.3",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.1",
+    "ngeohash": "^0.6.3",
+    "node-cron": "^3.0.3",
+    "sql.js": "^1.12.0"
+  }
+}

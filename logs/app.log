@@ -1,0 +1,49 @@
+[2026-03-12T11:50:13.566Z] INFO  BD-NewsMap → http://localhost:3000
+[2026-03-12T11:50:13.568Z] INFO  news_data dir → /data/data/com.termux/files/home/bd-newsmap-v6/news_data
+[2026-03-12T11:50:21.220Z] REQ   GET /
+[2026-03-12T11:50:21.336Z] REQ   GET /js/app.js
+[2026-03-12T11:50:22.002Z] REQ   GET /favicon.ico
+[2026-03-12T11:50:22.259Z] REQ   GET /api/feed
+[2026-03-12T11:50:26.522Z] REQ   POST /api/login
+[2026-03-12T11:50:28.783Z] REQ   POST /api/register
+[2026-03-12T11:50:29.601Z] INFO  REGISTER mahim
+[2026-03-12T11:50:29.629Z] REQ   GET /api/feed
+[2026-03-12T11:50:30.632Z] REQ   GET /api/news/chunks
+[2026-03-12T11:50:30.679Z] REQ   GET /api/news/subs
+[2026-03-12T11:53:32.771Z] REQ   POST /api/news
+[2026-03-12T11:53:32.868Z] INFO  NEWS COMMITTED mmnet1a10rte3p images=1 dist=0.47km
+[2026-03-12T11:53:32.902Z] REQ   GET /api/feed
+[2026-03-12T11:53:35.469Z] REQ   GET /api/news/chunks
+[2026-03-12T11:53:35.494Z] REQ   GET /api/news/subs
+[2026-03-12T11:53:35.503Z] REQ   GET /news_data/mmnet1a10rte3p/img_0.png
+[2026-03-12T11:53:39.753Z] REQ   GET /
+[2026-03-12T11:53:39.804Z] REQ   GET /js/app.js
+[2026-03-12T11:53:40.897Z] REQ   GET /api/feed
+[2026-03-12T11:53:41.952Z] REQ   GET /api/news/chunks
+[2026-03-12T11:53:41.992Z] REQ   GET /api/news/subs
+[2026-03-12T11:53:43.785Z] REQ   GET /api/news/subs
+[2026-03-12T11:53:44.444Z] REQ   GET /api/news/mmnet1a10rte3p
+[2026-03-12T11:53:50.910Z] REQ   GET /api/news/mmnet1a10rte3p
+[2026-03-12T11:53:55.166Z] REQ   GET /api/feed
+[2026-03-12T11:53:55.962Z] REQ   GET /api/feed
+[2026-03-12T11:53:59.276Z] REQ   GET /api/feed
+[2026-03-12T11:54:00.754Z] REQ   GET /api/feed
+[2026-03-12T12:05:35.498Z] INFO  BD-NewsMap → http://localhost:3000
+[2026-03-12T12:05:35.501Z] INFO  news_data dir → /data/data/com.termux/files/home/bd-newsmap-v6/news_data
+[2026-03-12T12:09:45.670Z] INFO  BD-NewsMap → http://localhost:3000
+[2026-03-12T12:09:45.683Z] INFO  news_data dir → /data/data/com.termux/files/home/bd-newsmap-v6/news_data
+[2026-03-12T12:13:46.940Z] INFO  BD-NewsMap → http://localhost:8080
+[2026-03-12T12:13:46.961Z] INFO  news_data dir → /data/data/com.termux/files/home/bd-newsmap-v6/news_data
+[2026-03-12T12:14:34.891Z] REQ   GET /
+[2026-03-12T12:14:36.193Z] REQ   GET /js/app.js
+[2026-03-12T12:14:38.369Z] REQ   GET /api/feed
+[2026-03-12T12:14:51.672Z] REQ   POST /api/register
+[2026-03-12T12:14:52.487Z] INFO  REGISTER hola
+[2026-03-12T12:14:53.153Z] REQ   GET /api/feed
+[2026-03-12T12:14:55.914Z] REQ   GET /api/news/chunks
+[2026-03-12T12:14:56.690Z] REQ   GET /api/news/subs
+[2026-03-12T12:14:57.473Z] REQ   GET /news_data/mmnet1a10rte3p/img_0.png
+[2026-03-12T12:17:23.966Z] REQ   GET /api/news/chunks
+[2026-03-12T12:17:25.014Z] REQ   GET /api/news/chunks
+[2026-03-12T12:17:26.038Z] REQ   GET /api/news/mmnet1a10rte3p
+[2026-03-12T12:17:27.053Z] REQ   GET /api/news/subs

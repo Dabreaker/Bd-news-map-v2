@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-store">
+<meta http-equiv="Pragma" content="no-cache">
+<title>বিডি নিউজম্যাপ</title>
+<script>(function(){try{if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){localStorage.clear();sessionStorage.clear();}}catch(e){}})();</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+/* ── TOKENS ───────────────────────────────────────────────── */
+:root{
+  --bg:      #0b0f1e;
+  --bg2:     #111627;
+  --surface: rgba(255,255,255,0.055);
+  --border:  rgba(255,255,255,0.10);
+  --accent:  #4f78ff;
+  --accent2: #ff4b6e;
+  --green:   #00d496;
+  --amber:   #ffb03a;
+  --text:    #e8ecff;
+  --muted:   #7b82a8;
+  --radius:  16px;
+  --tab-h:   66px;
+  --sans:    system-ui, -apple-system, sans-serif;
+  --shadow:  0 8px 32px rgba(0,0,0,0.45);
+}
+
+/* ── RESET ────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--sans)}
+button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:inherit}
+input,textarea{font-family:var(--sans);color:var(--text)}
+a{color:var(--accent);text-decoration:none}
+img{display:block}
+
+/* ── SHELL ────────────────────────────────────────────────── */
+#app{height:100dvh;position:relative;overflow:hidden;display:flex;flex-direction:column}
+
+/* ── SCREENS ──────────────────────────────────────────────── */
+.screen{
+  display:none;
+  position:absolute;
+  inset:0 0 var(--tab-h) 0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  z-index:1;
+}
+.screen.active{display:block}
+#screen-map{overflow:hidden}
+#screen-map.active{display:block}
+#screen-report{overflow-y:auto}
+#screen-report.active{display:flex;flex-direction:column}
+
+/* ── TAB BAR ──────────────────────────────────────────────── */
+#tabbar{
+  position:fixed;bottom:0;left:0;right:0;
+  height:var(--tab-h);
+  background:rgba(11,15,30,0.96);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:stretch;
+  z-index:1000;
+}
+.tab-btn{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;
+  color:var(--muted);font-size:10px;font-weight:600;
+  letter-spacing:0.4px;
+  transition:color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.tab-btn.active{color:var(--accent)}
+.tab-icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.tab-icon svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:stroke-width .15s}
+.tab-btn.active .tab-icon svg{stroke-width:2.3}
+
+/* ── MAP SCREEN ───────────────────────────────────────────── */
+#map{
+  position:absolute;inset:0;
+  background:var(--bg);
+}
+#map-fab{
+  position:absolute;bottom:20px;right:16px;z-index:500;
+  width:46px;height:46px;border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 4px 16px rgba(79,120,255,0.4);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:18px;
+}
+#map-loading{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  background:rgba(11,15,30,0.85);color:var(--text);
+  padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;
+  z-index:500;display:none;
+  backdrop-filter:blur(12px);border:1px solid var(--border);
+}
+
+/* ── GLASS CARD ───────────────────────────────────────────── */
+.glass{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+
+/* ── HOME / FEED ──────────────────────────────────────────── */
+.feed-wrap{padding:16px 16px calc(var(--tab-h)+20px)}
+.topbar{padding:52px 16px 8px;display:flex;align-items:center;justify-content:space-between}
+.topbar h1{font-size:22px;font-weight:700}
+
+.section-label{
+  font-size:11px;font-weight:700;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:10px;
+}
+
+/* Hero card */
+.hero-card{overflow:hidden;cursor:pointer;margin-bottom:4px;
+  transition:transform .12s,box-shadow .12s}
+.hero-card:active{transform:scale(0.98)}
+.hero-img{width:100%;height:190px;background-size:cover;background-position:center}
+.hero-noimg{display:flex;align-items:center;justify-content:center;font-size:40px;background:var(--bg2)}
+.hero-body{padding:14px 16px 16px}
+.hero-badge{display:inline-block;font-size:11px;font-weight:700;
+  padding:3px 10px;border-radius:20px;margin-bottom:8px;letter-spacing:.4px}
+.badge-real{background:rgba(0,212,150,0.18);color:var(--green)}
+.badge-fake{background:rgba(255,75,110,0.18);color:var(--accent2)}
+.hero-title{font-size:17px;font-weight:700;line-height:1.35;margin-bottom:8px}
+.hero-meta{display:flex;gap:10px;font-size:12px;color:var(--muted);margin-bottom:10px}
+
+/* Mini cards row */
+.card-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;margin:0 -2px;
+  scrollbar-width:none}
+.card-row::-webkit-scrollbar{display:none}
+.mini-card{flex:0 0 140px;overflow:hidden;cursor:pointer;transition:transform .12s}
+.mini-card:active{transform:scale(0.96)}
+.mini-img{width:100%;height:90px;background-size:cover;background-position:center}
+.mini-noimg{display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--bg2)}
+.mini-body{padding:8px 10px 10px}
+.mini-title{font-size:12px;font-weight:600;line-height:1.3;margin-bottom:6px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mini-meta{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.score-pill{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
+.pill-real{background:rgba(0,212,150,0.2);color:var(--green)}
+.pill-fake{background:rgba(255,75,110,0.2);color:var(--accent2)}
+
+/* List cards */
+.list-card{display:flex;align-items:center;gap:12px;padding:10px;
+  margin-bottom:8px;cursor:pointer;transition:transform .12s}
+.list-card:active{transform:scale(0.98)}
+.list-img{width:64px;height:64px;flex-shrink:0;border-radius:10px;
+  background-size:cover;background-position:center}
+.list-noimg{display:flex;align-items:center;justify-content:center;
+  font-size:22px;background:var(--bg2)}
+.list-body{flex:1;min-width:0}
+.list-title{font-size:13px;font-weight:600;line-height:1.3;margin-bottom:4px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.list-meta{font-size:11px;color:var(--muted)}
+.list-score{font-size:13px;font-weight:700;flex-shrink:0}
+.score-real{color:var(--green)}
+.score-fake{color:var(--accent2)}
+
+/* Truth bar */
+.truth-bar-wrap{background:rgba(255,75,110,0.25);border-radius:4px;height:4px;overflow:hidden}
+.truth-bar{height:100%;background:linear-gradient(90deg,var(--green),#00a876);border-radius:4px;transition:width .4s}
+
+/* Empty */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 32px;text-align:center;gap:14px;min-height:300px}
+.e-icon{font-size:48px}
+.empty p{color:var(--muted);font-size:15px;line-height:1.6}
+
+/* ── REPORT SCREEN ────────────────────────────────────────── */
+#report-map{
+  width:100%;height:260px;flex-shrink:0;
+  background:var(--bg2);z-index:1;
+}
+.rmap-wrap{position:relative;flex-shrink:0}
+.rmap-overlay{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  z-index:500;pointer-events:none;
+}
+#rmap-hint{
+  background:rgba(11,15,30,0.85);color:var(--text);
+  padding:7px 18px;border-radius:20px;font-size:12px;font-weight:600;
+  backdrop-filter:blur(12px);border:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+#rmap-coords{
+  display:none;position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  padding:7px 16px;border-radius:20px;z-index:500;
+  font-size:12px;font-weight:700;backdrop-filter:blur(12px);
+  white-space:nowrap;border:1.5px solid rgba(255,255,255,0.2);
+}
+.rmap-coords-ok{background:rgba(0,166,106,0.88);color:#fff}
+.rmap-coords-warn{background:rgba(200,20,50,0.88);color:#fff}
+.report-scroll{padding:16px 16px calc(var(--tab-h)+28px)}
+.report-form{display:flex;flex-direction:column;gap:16px}
+.field-label{font-size:11px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.f-input,.f-textarea{
+  width:100%;background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;padding:12px 14px;font-size:14px;color:var(--text);
+  transition:border-color .2s;outline:none;
+}
+.f-input:focus,.f-textarea:focus{border-color:var(--accent)}
+.f-textarea{resize:vertical;min-height:80px}
+.img-picker-label{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg2);border:1.5px dashed var(--border);
+  border-radius:12px;padding:14px;cursor:pointer;transition:border-color .2s}
+.img-picker-label:active{border-color:var(--accent)}
+#img-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+#img-preview img{width:72px;height:72px;object-fit:cover;border-radius:8px}
+.btn-submit{
+  width:100%;padding:15px;border-radius:14px;
+  background:linear-gradient(135deg,var(--accent),#2a4bd0);
+  color:#fff;font-size:15px;font-weight:700;letter-spacing:.3px;
+  transition:opacity .15s,transform .1s;
+}
+.btn-submit:active{transform:scale(0.97);opacity:0.9}
+.btn-submit:disabled{opacity:0.5}
+
+/* ── USER SCREEN ──────────────────────────────────────────── */
+.user-hero{display:flex;flex-direction:column;align-items:center;gap:10px;padding:52px 20px 28px}
+.user-avatar-big{
+  width:72px;height:72px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#2a4bd0);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:700;color:#fff;
+}
+.user-name{font-size:20px;font-weight:700}
+.user-trust{font-size:13px;color:var(--muted)}
+.auth-wrap{padding:16px}
+.auth-tabs{display:flex;background:var(--bg2);border-radius:12px;padding:4px;margin-bottom:20px}
+.auth-tab{flex:1;padding:10px;border-radius:10px;font-size:14px;font-weight:600;
+  color:var(--muted);transition:all .2s}
+.auth-tab.active{background:var(--accent);color:#fff}
+
+/* ── MODAL ────────────────────────────────────────────────── */
+#modal-overlay{
+  display:none;position:fixed;inset:0;z-index:2000;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);
+  overflow-y:auto;padding:20px 0 calc(var(--tab-h)+20px);
+}
+#modal-overlay.open{display:block}
+#modal-content{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:20px;
+  margin:0 auto;max-width:500px;width:calc(100% - 32px);
+  padding:16px;
+  overflow:hidden;
+}
+.carousel{overflow-x:auto;display:flex;gap:8px;scroll-snap-type:x mandatory;
+  border-radius:12px;margin-bottom:14px;scrollbar-width:none}
+.carousel::-webkit-scrollbar{display:none}
+.car-slide{scroll-snap-align:start;flex-shrink:0;width:100%;position:relative}
+.car-counter{
+  position:absolute;bottom:8px;right:10px;
+  background:rgba(0,0,0,0.65);color:#fff;
+  font-size:11px;padding:2px 8px;border-radius:10px;
+}
+.no-img-ph{padding:40px;text-align:center;color:var(--muted);font-size:28px;margin-bottom:14px}
+.modal-title{font-size:19px;font-weight:700;line-height:1.35;margin-bottom:10px}
+.modal-meta-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.meta-chip{background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600}
+.chip-warn{background:rgba(255,75,110,0.15);color:var(--accent2);border-color:rgba(255,75,110,0.3)}
+.modal-desc{font-size:14px;line-height:1.6;color:rgba(232,236,255,0.8);margin-bottom:14px}
+.truth-meter{background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.tm-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px}
+.tm-fake{color:var(--accent2);font-weight:700}
+.tm-real{color:var(--green);font-weight:700}
+.tm-pct{text-align:center;font-size:12px;color:var(--muted);margin-top:6px}
+.vote-row{display:flex;gap:10px;margin-bottom:8px}
+.btn-vote{
+  flex:1;padding:13px;border-radius:12px;font-size:14px;font-weight:700;
+  transition:opacity .15s,transform .1s;
+}
+.btn-vote:active{transform:scale(0.96)}
+.btn-vote:disabled{opacity:0.35}
+.btn-real{background:linear-gradient(135deg,#00d496,#009a6a);color:#fff}
+.btn-fake{background:linear-gradient(135deg,#ff4b6e,#c00030);color:#fff}
+.vote-hint{text-align:center;font-size:12px;color:var(--muted);margin-bottom:12px}
+.links-section{margin-bottom:14px}
+.modal-links{display:flex;flex-direction:column;gap:5px}
+.modal-links a{font-size:12px;color:var(--accent);word-break:break-all;
+  padding:6px 10px;background:var(--surface);border-radius:8px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.detail-item{background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px}
+.di-label{font-size:10px;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.di-val{font-size:13px;font-weight:600}
+.btn-delete{
+  width:100%;padding:12px;border-radius:12px;
+  background:rgba(255,75,110,0.12);border:1px solid rgba(255,75,110,0.3);
+  color:var(--accent2);font-size:13px;font-weight:700;margin-top:6px;
+  transition:background .2s;
+}
+.btn-delete:active{background:rgba(255,75,110,0.22)}
+
+/* ── MAP MARKERS ──────────────────────────────────────────── */
+.nm-pin{
+  position:relative;border-radius:7px;overflow:hidden;
+  box-shadow:0 3px 14px rgba(0,0,0,0.5),0 1px 3px rgba(0,0,0,0.3);
+  cursor:pointer;transition:transform .1s;
+}
+.nm-pin:active{transform:scale(0.92)}
+.pin-real  {--pc:#009a6a;border:2.5px solid #00d496;background:linear-gradient(145deg,#00c48c,#009a6a)}
+.pin-fake  {--pc:#cc1030;border:2.5px solid #ff4b6e;background:linear-gradient(145deg,#ff4b6e,#c00030)}
+.pin-neutral{--pc:#2a4bd0;border:2.5px solid #4f78ff;background:linear-gradient(145deg,#4f78ff,#2a4bd0)}
+.nm-pin::after{
+  content:'';position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);
+  border:9px solid transparent;border-top-color:rgba(255,255,255,0.65);
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+}
+.nm-pin::before{
+  content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);
+  border:7px solid transparent;border-top-color:var(--pc,#2a4bd0);z-index:1;
+}
+.nm-noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:1.3em;opacity:0.6}
+
+/* ── SPINNER ──────────────────────────────────────────────── */
+.spinner{display:flex;align-items:center;justify-content:center;
+  min-height:180px;gap:6px}
+.spinner b{width:8px;height:8px;border-radius:50%;
+  background:var(--accent);display:inline-block;
+  animation:bounce .8s infinite alternate}
+.spinner b:nth-child(2){animation-delay:.2s}
+.spinner b:nth-child(3){animation-delay:.4s}
+@keyframes bounce{to{transform:translateY(-10px);opacity:.4}}
+
+/* ── TOAST ────────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:calc(var(--tab-h)+14px);left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:rgba(30,36,60,0.96);color:var(--text);
+  padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;
+  white-space:nowrap;z-index:3000;opacity:0;
+  transition:opacity .25s,transform .25s;
+  border:1px solid var(--border);backdrop-filter:blur(12px);
+  pointer-events:none;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.err{background:rgba(180,20,40,0.95);border-color:rgba(255,75,110,0.4)}
+
+/* ── LEAFLET OVERRIDES ────────────────────────────────────── */
+.leaflet-control-attribution{display:none!important}
+.leaflet-control-zoom a{
+  background:rgba(11,15,30,0.92)!important;color:var(--text)!important;
+  border-color:var(--border)!important;font-size:16px!important;
+  backdrop-filter:blur(10px);
+}
+.leaflet-tile{filter:brightness(0.88) saturate(0.75)}
+
+/* ── AVATAR BTN ───────────────────────────────────────────── */
+#avatar-btn{
+  position:fixed;top:14px;right:14px;z-index:900;
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#2a4bd0);
+  color:#fff;font-size:14px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 10px rgba(79,120,255,0.4);
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <div id="screen-home" class="screen active">
+    <div class="topbar">
+      <h1>বিডি নিউজম্যাপ</h1>
+    </div>
+    <div id="home-content"><div class="spinner"><b></b></div></div>
+  </div>
+
+  <!-- MAP -->
+  <div id="screen-map" class="screen">
+    <div id="map"></div>
+    <div id="map-loading">মানচিত্র লোড হচ্ছে…</div>
+    <button id="map-fab" onclick="locateMe()">⊕</button>
+  </div>
+
+  <!-- EXPLORE -->
+  <div id="screen-explore" class="screen">
+    <div class="topbar"><h1>অন্বেষণ</h1></div>
+    <div id="explore-content"><div class="spinner"><b></b></div></div>
+  </div>
+
+  <!-- USER -->
+  <div id="screen-user" class="screen">
+    <div id="user-content"><div class="spinner"><b></b></div></div>
+  </div>
+
+  <!-- REPORT -->
+  <div id="screen-report" class="screen">
+    <div class="rmap-wrap">
+      <div id="report-map"></div>
+      <div class="rmap-overlay">
+        <div id="rmap-hint">📍 মানচিত্রে ট্যাপ করে পিন করুন</div>
+      </div>
+      <div id="rmap-coords"></div>
+    </div>
+    <div class="report-scroll">
+      <div class="topbar" style="padding-top:14px"><h1>সংবাদ <span style="color:var(--accent)">রিপোর্ট</span></h1></div>
+      <div class="report-form">
+        <div>
+          <div class="field-label">শিরোনাম</div>
+          <input class="f-input" id="r-title" placeholder="কী ঘটেছে?" maxlength="120">
+        </div>
+        <div>
+          <div class="field-label">বিবরণ</div>
+          <textarea class="f-textarea" id="r-desc" placeholder="বিস্তারিত লিখুন…" maxlength="1000"></textarea>
+        </div>
+        <div>
+          <div class="field-label">সূত্র লিঙ্ক</div>
+          <input class="f-input" id="r-links" placeholder="https://…">
+        </div>
+        <div>
+          <div class="field-label">ছবি (সর্বোচ্চ ১০টি)</div>
+          <label class="img-picker-label" for="r-images">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            <span style="color:var(--muted);font-size:13px">ছবি যোগ করুন</span>
+          </label>
+          <input type="file" id="r-images" accept="image/*" multiple style="display:none" onchange="previewImages(this)">
+          <div id="img-preview"></div>
+        </div>
+        <button class="btn-submit" id="submit-btn" onclick="submitReport()">প্রকাশ করুন</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modal-overlay" onclick="closeModal(event)">
+    <div id="modal-content"></div>
+  </div>
+
+  <!-- AVATAR -->
+  <button id="avatar-btn" onclick="switchTab('user')">?</button>
+
+  <!-- TOAST -->
+  <div id="toast"></div>
+
+  <!-- TAB BAR -->
+  <nav id="tabbar">
+    <button class="tab-btn active" data-tab="home" onclick="switchTab('home')">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <span class="tab-label">হোম</span>
+    </button>
+    <button class="tab-btn" data-tab="map" onclick="switchTab('map')">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      </div>
+      <span class="tab-label">মানচিত্র</span>
+    </button>
+    <button class="tab-btn" data-tab="explore" onclick="switchTab('explore')">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <span class="tab-label">অন্বেষণ</span>
+    </button>
+    <button class="tab-btn" data-tab="user" onclick="switchTab('user')">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <span class="tab-label">অ্যাকাউন্ট</span>
+    </button>
+    <button class="tab-btn" data-tab="report" onclick="switchTab('report')">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      </div>
+      <span class="tab-label">রিপোর্ট</span>
+    </button>
+  </nav>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>
